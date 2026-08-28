@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section>
+  <h1>Month-by-month projection</h1>
+  <p>
+    Starting balance: <strong>{{ fmt(dashboard.balance_pence) }}</strong> ·
+    {{ dashboard.months_remaining }} months remaining ·
+    Promo ends {{ dashboard.promo_end.strftime('%d %b %Y') }}
+  </p>
+  <p>
+    Assumes <strong>no new purchases or charges</strong> during the projection period.
+    Interest remains 0% throughout.
+  </p>
+
+  {% if rows %}
+
+  <div class="summary-grid" style="margin-bottom:1.5rem">
+    <div class="card {% if min_end > 0 %}card-alert{% else %}card-ok{% endif %}">
+      <div class="card-label">End balance (minimum only)</div>
+      <div class="card-value">{{ fmt(min_end) }}</div>
+      {% if min_end > 0 %}
+      <div class="card-sub">This attracts standard rate after promo ends</div>
+      {% else %}
+      <div class="card-sub">Balance cleared before promo end</div>
+      {% endif %}
+    </div>
+    <div class="card card-ok">
+      <div class="card-label">End balance (payoff schedule)</div>
+      <div class="card-value">{{ fmt(payoff_end) }}</div>
+      <div class="card-sub">Pay {{ fmt(dashboard.payoff_payment_pence) }}/month to achieve this</div>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <table class="ledger-table">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th class="col-amount">Balance</th>
+          <th class="col-amount">Min payment</th>
+          <th>Min option</th>
+          <th class="col-amount">Min balance</th>
+          <th class="col-amount">Payoff payment</th>
+          <th class="col-amount">Payoff balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.month_number }}</td>
+          <td class="col-amount">{{ fmt(row.balance_before_pence) }}</td>
+          <td class="col-amount amount-debit">{{ fmt(row.min_payment_pence) }}</td>
+          <td>
+            {% if row.min_option not in ('zero','full_balance') %}
+            <span class="option-badge option-{{ row.min_option }}">{{ row.min_option }}</span>
+            {% else %}
+            <span class="option-badge">—</span>
+            {% endif %}
+          </td>
+          <td class="col-amount {% if row.min_balance_after_pence == 0 %}amount-credit{% endif %}">
+            {{ fmt(row.min_balance_after_pence) }}
+          </td>
+          <td class="col-amount amount-debit">{{ fmt(row.payoff_payment_pence) }}</td>
+          <td class="col-amount {% if row.payoff_balance_after_pence == 0 %}amount-credit{% endif %}">
+            {{ fmt(row.payoff_balance_after_pence) }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+    <p class="empty-state">Nothing to project — balance is zero or promotional period has ended.</p>
+  {% endif %}
+
+  <p><a href="{{ url_for('index') }}" class="btn btn-secondary">← Dashboard</a></p>
+</section>
+
+{% endblock %}

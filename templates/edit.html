@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="form-page">
+  <h1>Edit entry</h1>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back</a>
+
+  <form method="post" action="{{ url_for('edit_entry', entry_id=entry.id) }}">
+    <div class="form-row">
+      <label for="entry_type">Type</label>
+      <select id="entry_type" name="entry_type">
+        <option value="purchase"  {% if entry.entry_type == 'purchase' %}selected{% endif %}>Purchase</option>
+        <option value="payment"   {% if entry.entry_type == 'payment'  %}selected{% endif %}>Payment</option>
+        <option value="charge"    {% if entry.entry_type == 'charge'   %}selected{% endif %}>Charge</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label for="description">Description</label>
+      <input type="text" id="description" name="description" value="{{ entry.description }}">
+    </div>
+
+    <div class="form-row">
+      <label for="amount">Amount (£)</label>
+      <input type="number" id="amount" name="amount" step="0.01" min="0.01"
+             value="{{ '%.2f' % (entry.amount_pence / 100) }}" required>
+    </div>
+
+    <div class="form-row">
+      <label for="entry_date">Date</label>
+      <input type="date" id="entry_date" name="entry_date" value="{{ entry.entry_date }}" required>
+    </div>
+
+    {% if entry.entry_type == 'purchase' %}
+    <div class="form-row form-row-check">
+      <label>
+        <input type="checkbox" name="non_sterling" value="1" {% if entry.non_sterling %}checked{% endif %}>
+        Non-sterling transaction
+      </label>
+    </div>
+    {% endif %}
+
+    {% if entry.entry_type == 'charge' %}
+    <div class="form-row">
+      <label for="charge_subtype">Charge type</label>
+      <select id="charge_subtype" name="charge_subtype">
+        {% for key, (label, pence) in charge_subtypes.items() %}
+        <option value="{{ key }}" {% if entry.charge_subtype == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+      <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</section>
+
+{% endblock %}

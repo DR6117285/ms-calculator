@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="form-page">
+  <h1>Card setup</h1>
+  <p>These values come from your offer letter, not the T&amp;Cs. They are entered once and stored locally.</p>
+
+  <form method="post" action="{{ url_for('setup') }}">
+    <div class="form-row">
+      <label for="promo_start_date">Promotional period start date</label>
+      <input type="date" id="promo_start_date" name="promo_start_date"
+             value="{{ config.promo_start_date if config else '' }}" required>
+      <small>The date your 0% purchase period began (check your offer letter).</small>
+    </div>
+
+    <div class="form-row">
+      <label for="promo_months">Promotional length (months)</label>
+      <input type="number" id="promo_months" name="promo_months" min="1" max="60"
+             value="{{ config.promo_months if config else default_promo_months }}" required>
+      <small>26 months is typical for M&amp;S Bank purchase offers.</small>
+    </div>
+
+    <div class="form-row">
+      <label for="statement_day">Statement day of month (1–28)</label>
+      <input type="number" id="statement_day" name="statement_day" min="1" max="28"
+             value="{{ config.statement_day if config else default_statement_day }}" required>
+      <small>Payment is due 25 days after this day each month.</small>
+    </div>
+
+    <div class="form-row">
+      <label for="credit_limit_pence">Credit limit (£)</label>
+      <input type="number" id="credit_limit_pence" name="credit_limit_pence" step="0.01" min="0"
+             value="{{ (config.credit_limit_pence / 100) if config else '0' }}" required>
+      <small>Used to show headroom. Going over triggers a £12 charge.</small>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save settings</button>
+  </form>
+</section>
+
+{% endblock %}

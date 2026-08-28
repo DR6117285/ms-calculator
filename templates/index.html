@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block content %}
+
+{# ── Summary panel ───────────────────────────────────────────────── #}
+<section class="summary-grid">
+
+  <div class="card card-balance {% if dashboard.balance_pence == 0 %}card-ok{% elif dashboard.overpayment %}card-warn{% endif %}">
+    <div class="card-label">Outstanding balance</div>
+    <div class="card-value">{{ fmt(dashboard.balance_pence) }}</div>
+    {% if dashboard.overpayment %}
+      <div class="card-sub warn">Overpayment — T&amp;Cs say excess will be refunded</div>
+    {% endif %}
+    {% if dashboard.credit_limit_pence %}
+      <div class="card-sub">Headroom: {{ fmt(dashboard.headroom_pence) }} of {{ fmt(dashboard.credit_limit_pence) }}</div>
+    {% endif %}
+  </div>
+
+  <div class="card {% if dashboard.months_remaining <= 3 %}card-warn{% elif dashboard.months_remaining == 0 %}card-alert{% endif %}">
+    <div class="card-label">Promotional period</div>
+    <div class="card-value">{{ dashboard.months_remaining }} months left</div>
+    <div class="card-sub">{{ dashboard.months_elapsed }} of {{ config.promo_months }} months elapsed · ends {{ dashboard.promo_end.strftime('%d %b %Y') }}</div>
+  </div>
+
+  <div class="card {% if dashboard.days_until_due <= 5 %}card-alert{% elif dashboard.days_until_due <= 10 %}card-warn{% endif %}">
+    <div class="card-label">Next payment due</div>
+    <div class="card-value">{{ dashboard.days_until_due }} days</div>
+    <div class="card-sub">{{ dashboard.next_due_date.strftime('%d %b %Y') }} · Pay on time to keep 0%!</div>
+  </div>
+
+  <div class="card card-min">
+    <div class="card-label">Contractual minimum</div>
+    <div class="card-value">{{ fmt(dashboard.min_payment.amount_pence) }}</div>
+    <div class="card-sub option-badge option-{{ dashboard.min_payment.winning_option }}">
+      Option {{ dashboard.min_payment.winning_option }} wins
+    </div>
+    <div class="card-explanation">{{ dashboard.min_payment.explanation }}</div>
+    {% if dashboard.min_payment.winning_option not in ('zero','full_balance') %}
+    <div class="card-options-detail">
+      <span>A: {{ fmt(dashboard.min_payment.option_a_pence) }}</span>
+      <span>B: {{ fmt(dashboard.min_payment.option_b_pence) }}</span>
+      <span>C: {{ fmt(dashboard.min_payment.option_c_pence) }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card card-payoff">
+    <div class="card-label">Payoff payment</div>
+    <div class="card-value">{{ fmt(dashboard.payoff_payment_pence) }}</div>
+    <div class="card-sub">Clears balance over {{ dashboard.months_remaining }} months</div>
+  </div>
+
+  <div class="card {% if dashboard.shortfall_pence > 0 %}card-warn{% endif %}">
+    <div class="card-label">Shortfall</div>
+    <div class="card-value">{{ fmt(dashboard.shortfall_pence) }}</div>
+    <div class="card-sub">Extra you pay above minimum to stay on track</div>
+  </div>
+
+  {% if dashboard.projected_end_balance_min_pence > 0 %}
+  <div class="card card-alert">
+    <div class="card-label">Projected balance at promo end (min only)</div>
+    <div class="card-value">{{ fmt(dashboard.projected_end_balance_min_pence) }}</div>
+    <div class="card-sub">This will attract standard rate after {{ dashboard.promo_end.strftime('%d %b %Y') }}</div>
+  </div>
+  {% endif %}
+
+</section>
+
+{# ── Add entry forms ─────────────────────────────────────────────── #}
+<section class="forms-section">
+  <h2>Add entry</h2>
+
+  <div class="form-tabs">
+    <input type="radio" name="form-tab" id="tab-purchase" checked hidden>
+    <input type="radio" name="form-tab" id="tab-payment" hidden>
+    <input type="radio" name="form-tab" id="tab-charge" hidden>
+
+    <div class="tab-labels">
+      <label for="tab-purchase" class="tab-label">Purchase</label>
+      <label for="tab-payment" class="tab-label">Payment</label>
+      <label for="tab-charge" class="tab-label">Charge</label>
+    </div>
+
+    {# Purchase form #}
+    <div class="tab-content" id="content-purchase">
+      <form method="post" action="{{ url_for('add_entry') }}">
+        <input type="hidden" name="entry_type" value="purchase">
+        <div class="form-row">
+          <label for="p-desc">Description</label>
+          <input type="text" id="p-desc" name="description" placeholder="e.g. Grocery shop" required>
+        </div>
+        <div class="form-row">
+          <label for="p-amount">Amount (£)</label>
+          <input type="number" id="p-amount" name="amount" step="0.01" min="0.01" placeholder="0.00" required>
+        </div>
+        <div class="form-row">
+          <label for="p-date">Date</label>
+          <input type="date" id="p-date" name="entry_date" value="{{ today().isoformat() }}" required>
+        </div>
+        <div class="form-row form-row-check">
+          <label>
+            <input type="checkbox" name="non_sterling" value="1">
+            Non-sterling transaction (adds 2.99% surcharge)
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary">Add purchase</button>
+      </form>
+    </div>
+
+    {# Payment form #}
+    <div class="tab-content" id="content-payment">
+      <form method="post" action="{{ url_for('add_entry') }}">
+        <input type="hidden" name="entry_type" value="payment">
+        <div class="form-row">
+          <label for="pay-amount">Amount paid (£)</label>
+          <input type="number" id="pay-amount" name="amount" step="0.01" min="0.01" placeholder="0.00" required>
+        </div>
+        <div class="form-row">
+          <label for="pay-date">Date paid</label>
+          <input type="date" id="pay-date" name="entry_date" value="{{ today().isoformat() }}" required>
+        </div>
+        <input type="hidden" name="description" value="Payment">
+        <button type="submit" class="btn btn-primary">Record payment</button>
+      </form>
+    </div>
+
+    {# Charge form #}
+    <div class="tab-content" id="content-charge">
+      <form method="post" action="{{ url_for('add_entry') }}">
+        <input type="hidden" name="entry_type" value="charge">
+        <div class="form-row">
+          <label for="ch-type">Charge type</label>
+          <select id="ch-type" name="charge_subtype" required>
+            {% for key, (label, pence) in charge_subtypes.items() %}
+            <option value="{{ key }}">{{ label }} ({{ fmt(pence) }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="ch-amount">Amount (£)</label>
+          <input type="number" id="ch-amount" name="amount" step="0.01" min="0.01" placeholder="12.00" required>
+        </div>
+        <div class="form-row">
+          <label for="ch-date">Date</label>
+          <input type="date" id="ch-date" name="entry_date" value="{{ today().isoformat() }}" required>
+        </div>
+        <input type="hidden" name="description" value="">
+        <button type="submit" class="btn btn-danger">Add charge</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+{# ── Ledger ──────────────────────────────────────────────────────── #}
+<section class="ledger-section">
+  <h2>Ledger <a href="{{ url_for('projection') }}" class="btn btn-sm btn-secondary">View projection →</a></h2>
+
+  {% if ledger %}
+  <div class="table-scroll">
+    <table class="ledger-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th class="col-amount">Amount</th>
+          <th class="col-amount">Balance</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in ledger %}
+        <tr class="entry-{{ entry.entry_type }}">
+          <td>{{ entry.entry_date }}</td>
+          <td>
+            <span class="type-badge type-{{ entry.entry_type }}">{{ entry.entry_type }}</span>
+            {% if entry.non_sterling %}<span class="badge-fx">FX</span>{% endif %}
+          </td>
+          <td>{{ entry.description }}</td>
+          <td class="col-amount {% if entry.entry_type == 'payment' %}amount-credit{% else %}amount-debit{% endif %}">
+            {% if entry.entry_type == 'payment' %}−{% endif %}{{ fmt(entry.amount_pence) }}
+          </td>
+          <td class="col-amount {% if entry.running_balance_pence < 0 %}amount-credit{% endif %}">
+            {{ fmt(entry.running_balance_pence) }}
+          </td>
+          <td class="actions">
+            <a href="{{ url_for('edit_entry', entry_id=entry.id) }}" class="btn btn-sm">Edit</a>
+            <form method="post" action="{{ url_for('delete_entry', entry_id=entry.id) }}"
+                  onsubmit="return confirm('Delete this entry?');" style="display:inline">
+              <button type="submit" class="btn btn-sm btn-danger">Del</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="empty-state">No entries yet. Add a purchase above to get started.</p>
+  {% endif %}
+</section>
+
+<style>
+/* Tab switching with pure CSS */
+#tab-purchase:checked ~ .form-tabs #content-purchase,
+#tab-payment:checked  ~ .form-tabs #content-payment,
+#tab-charge:checked   ~ .form-tabs #content-charge  { display: block; }
+
+#tab-purchase:checked ~ .form-tabs label[for="tab-purchase"],
+#tab-payment:checked  ~ .form-tabs label[for="tab-payment"],
+#tab-charge:checked   ~ .form-tabs label[for="tab-charge"]  {
+  background: var(--c-primary); color: white;
+}
+</style>
+
+{% endblock %}

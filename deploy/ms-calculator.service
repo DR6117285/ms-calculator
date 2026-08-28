@@ -1,0 +1,27 @@
+[Unit]
+Description=M&S Card Calculator
+After=network.target tailscaled.service
+
+[Service]
+Type=simple
+User=mscalc
+WorkingDirectory=/opt/ms-calculator
+ExecStart=/opt/ms-calculator/venv/bin/python app.py
+Restart=on-failure
+RestartSec=5
+
+# Tailscale IP is set here — override if your tailnet address changes.
+# Run: tailscale ip -4  inside the container to get the right value.
+Environment=MS_CALC_HOST=100.x.x.x
+Environment=MS_CALC_PORT=5000
+Environment=MS_CALC_DB=/data/card.db
+Environment=MS_CALC_SECRET=replace-with-a-long-random-string
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/data
+
+[Install]
+WantedBy=multi-user.target
