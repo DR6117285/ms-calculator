@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 
+{# ── Quick action bar ────────────────────────────────────────────── #}
+<div class="quick-actions">
+  <a href="#add-entry" class="btn btn-primary">＋ Add entry</a>
+</div>
+
 {# ── Summary panel ───────────────────────────────────────────────── #}
 <section class="summary-grid">
 
@@ -66,7 +71,7 @@
 </section>
 
 {# ── Add entry forms ─────────────────────────────────────────────── #}
-<section class="forms-section">
+<section class="forms-section" id="add-entry">
   <h2>Add entry</h2>
 
   <div class="form-tabs">

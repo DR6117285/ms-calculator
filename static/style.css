@@ -94,6 +94,14 @@ footer a { color: var(--c-text-muted); }
 .flash-warning { background: #fef9e7; border-left: 4px solid var(--c-warn); }
 .flash-error   { background: #fadbd8; border-left: 4px solid var(--c-alert); }
 
+/* ── Quick actions ─────────────────────────────────────────────────── */
+
+.quick-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: .75rem;
+}
+
 /* ── Summary cards ─────────────────────────────────────────────────── */
 
 .summary-grid {
