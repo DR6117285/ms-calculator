@@ -304,6 +304,8 @@ class DashboardSummary:
     shortfall_pence: int                    # payoff − minimum
     projected_end_balance_min_pence: int    # if paying minimums only
     overpayment: bool
+    custom_payoff_months: int | None = None   # user-chosen duration ≤ months_remaining
+    custom_payoff_pence: int = 0              # level payment to clear over custom_payoff_months
 
 
 def build_dashboard(config: dict, balance_summary: dict, today: date = None) -> DashboardSummary:
@@ -340,6 +342,15 @@ def build_dashboard(config: dict, balance_summary: dict, today: date = None) -> 
 
     headroom = max(0, credit_limit - balance)
 
+    # Custom payoff: user-chosen duration within the promo window.
+    # Clamp to [1, remaining] so we never project past the 0% window.
+    custom_months_raw = config.get('custom_payoff_months')
+    custom_months = None
+    custom_payoff = 0
+    if custom_months_raw and remaining > 0 and balance > 0:
+        custom_months = max(1, min(int(custom_months_raw), remaining))
+        custom_payoff = calculate_payoff_payment(balance, custom_months)
+
     return DashboardSummary(
         balance_pence=balance,
         credit_limit_pence=credit_limit,
@@ -354,4 +365,6 @@ def build_dashboard(config: dict, balance_summary: dict, today: date = None) -> 
         shortfall_pence=shortfall,
         projected_end_balance_min_pence=end_balance_min,
         overpayment=is_overpayment,
+        custom_payoff_months=custom_months,
+        custom_payoff_pence=custom_payoff,
     )

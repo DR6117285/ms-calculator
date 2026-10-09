@@ -54,6 +54,27 @@
     <div class="card-sub">Clears balance over {{ dashboard.months_remaining }} months</div>
   </div>
 
+  <div class="card card-payoff">
+    <div class="card-label">Custom payoff</div>
+    {% if dashboard.custom_payoff_months %}
+      <div class="card-value">{{ fmt(dashboard.custom_payoff_pence) }}</div>
+      <div class="card-sub">Clears balance over {{ dashboard.custom_payoff_months }} months (within 0% window)</div>
+    {% else %}
+      <div class="card-value" style="font-size:1rem;opacity:0.6">Not set</div>
+      <div class="card-sub">Pick a duration up to {{ dashboard.months_remaining }} months</div>
+    {% endif %}
+    <form method="post" action="{{ url_for('set_custom_payoff') }}" class="custom-payoff-form">
+      <input type="number" name="custom_payoff_months"
+             min="1" max="{{ dashboard.months_remaining }}" step="1"
+             value="{{ dashboard.custom_payoff_months or '' }}"
+             placeholder="months" required>
+      <button type="submit" class="btn btn-sm btn-primary">Set</button>
+      {% if dashboard.custom_payoff_months %}
+        <button type="submit" class="btn btn-sm" name="custom_payoff_months" value="" formnovalidate>Clear</button>
+      {% endif %}
+    </form>
+  </div>
+
   <div class="card {% if dashboard.shortfall_pence > 0 %}card-warn{% endif %}">
     <div class="card-label">Shortfall</div>
     <div class="card-value">{{ fmt(dashboard.shortfall_pence) }}</div>
@@ -209,6 +230,9 @@
 #tab-purchase:checked ~ .form-tabs #content-purchase,
 #tab-payment:checked  ~ .form-tabs #content-payment,
 #tab-charge:checked   ~ .form-tabs #content-charge  { display: block; }
+
+.custom-payoff-form { display: flex; gap: 0.4rem; margin-top: 0.6rem; align-items: center; }
+.custom-payoff-form input[type="number"] { width: 5.5rem; }
 
 #tab-purchase:checked ~ .form-tabs label[for="tab-purchase"],
 #tab-payment:checked  ~ .form-tabs label[for="tab-payment"],

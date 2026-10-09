@@ -21,11 +21,12 @@ def init_db():
     with get_db() as conn:
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS card_config (
-                id                  INTEGER PRIMARY KEY CHECK (id = 1),
-                promo_start_date    TEXT    NOT NULL,
-                promo_months        INTEGER NOT NULL DEFAULT 26,
-                statement_day       INTEGER NOT NULL DEFAULT 1,
-                credit_limit_pence  INTEGER NOT NULL DEFAULT 0
+                id                     INTEGER PRIMARY KEY CHECK (id = 1),
+                promo_start_date       TEXT    NOT NULL,
+                promo_months           INTEGER NOT NULL DEFAULT 26,
+                statement_day          INTEGER NOT NULL DEFAULT 1,
+                credit_limit_pence     INTEGER NOT NULL DEFAULT 0,
+                custom_payoff_months   INTEGER
             );
 
             CREATE TABLE IF NOT EXISTS entries (
@@ -39,6 +40,10 @@ def init_db():
                 created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
             );
         """)
+        # Idempotent migration: add custom_payoff_months to existing DBs
+        cols = {r['name'] for r in conn.execute('PRAGMA table_info(card_config)').fetchall()}
+        if 'custom_payoff_months' not in cols:
+            conn.execute('ALTER TABLE card_config ADD COLUMN custom_payoff_months INTEGER')
 
 
 # ── card_config ──────────────────────────────────────────────────────────────
@@ -60,6 +65,12 @@ def save_card_config(promo_start_date, promo_months, statement_day, credit_limit
                 statement_day      = excluded.statement_day,
                 credit_limit_pence = excluded.credit_limit_pence
         """, (promo_start_date, promo_months, statement_day, credit_limit_pence))
+
+
+def set_custom_payoff_months(months: int | None):
+    """Store (or clear) the user's chosen custom payoff duration."""
+    with get_db() as conn:
+        conn.execute('UPDATE card_config SET custom_payoff_months = ? WHERE id = 1', (months,))
 
 
 # ── entries ──────────────────────────────────────────────────────────────────

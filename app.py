@@ -193,6 +193,40 @@ def delete_entry(entry_id):
     return redirect(url_for('index'))
 
 
+@app.route('/custom-payoff', methods=['POST'])
+def set_custom_payoff():
+    """Save (or clear) the user's chosen custom payoff duration in months."""
+    config = db.get_card_config()
+    if not config:
+        return redirect(url_for('setup'))
+
+    raw = request.form.get('custom_payoff_months', '').strip()
+    if raw == '':
+        db.set_custom_payoff_months(None)
+        flash('Custom payoff duration cleared.', 'success')
+        return redirect(url_for('index'))
+
+    summary = db.get_balance_summary()
+    dashboard = build_dashboard(config, summary)
+    try:
+        months = int(raw)
+    except ValueError:
+        flash('Enter a whole number of months.', 'error')
+        return redirect(url_for('index'))
+
+    if months < 1 or months > dashboard.months_remaining:
+        flash(
+            f'Custom duration must be between 1 and {dashboard.months_remaining} '
+            f'months (the time left in the 0% window).',
+            'error',
+        )
+        return redirect(url_for('index'))
+
+    db.set_custom_payoff_months(months)
+    flash(f'Custom payoff set to {months} months.', 'success')
+    return redirect(url_for('index'))
+
+
 @app.route('/projection')
 def projection():
     config = db.get_card_config()
